@@ -32,6 +32,9 @@ void on_signal_sigusr1(int signal_number) {
 static void screen_changed(GtkWidget *widget, GdkScreen *old_screen,
         gpointer user_data);
 static void composited_changed(GdkScreen *screen, gpointer user_data);
+static gboolean permission_requested(WebKitWebView *web_view,
+                                       WebKitPermissionRequest *request,
+                                       GtkWindow *parent_window);
 static void on_close_web_view(WebKitWebView *web_view, gpointer user_data);
 
 static void size_to_screen(GtkWindow *window);
@@ -696,6 +699,10 @@ next:
     g_signal_connect(screen, "composited-changed",
             G_CALLBACK(composited_changed), web_view);
 
+    // Set up a callback to react to permission requests
+    g_signal_connect(web_view, "permission-request",
+            G_CALLBACK(permission_requested), web_view);
+
     // Set up a callback to react to window.close() being called from JS within
     // the WebView
     g_signal_connect(web_view, "close",
@@ -1022,4 +1029,12 @@ static void composited_changed(GdkScreen *s, gpointer user_data) {
     GdkScreen *screen = gtk_widget_get_screen(GTK_WIDGET(web_view));
     call_js_listeners(web_view, "composited-changed",
             gdk_screen_is_composited(screen) ? "true" : "false");
+}
+
+static gboolean permission_requested(WebKitWebView *web_view,
+                                       WebKitPermissionRequest *request,
+                                       GtkWindow *parent_window)
+{
+    webkit_permission_request_allow(request);
+    return TRUE;
 }
